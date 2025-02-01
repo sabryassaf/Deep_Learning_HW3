@@ -93,9 +93,27 @@ class Trainer(abc.ABC):
             #  - Implement early stopping. This is a very useful and
             #    simple regularization technique that is highly recommended.
             # ====== YOUR CODE: ======
-            
-            raise NotImplementedError()
+            train_result = self.train_epoch(dl_train, **kw)
+            test_result = self.test_epoch(dl_test, **kw)
 
+            train_loss.extend(train_result.losses)
+            train_acc.append(train_result.accuracy)
+            test_loss.extend(test_result.losses)
+            test_acc.append(test_result.accuracy)
+
+            actual_num_epochs = epoch + 1
+
+            # Handle early stopping
+            if best_acc is None or test_result.accuracy > best_acc:
+                best_acc = test_result.accuracy
+                epochs_without_improvement = 0
+                save_checkpoint = True
+            else:
+                epochs_without_improvement += 1
+                save_checkpoint = False
+
+            if early_stopping and epochs_without_improvement >= early_stopping:
+                break
             # ========================
 
             # Save model checkpoint if requested
@@ -250,7 +268,17 @@ class RNNTrainer(Trainer):
         #  - Update params
         #  - Calculate number of correct char predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.optimizer.zero_grad()
+        y_pred, self.hidden_state = self.model(x, self.hidden_state)
+        if self.hidden_state is not None:
+            self.hidden_state = self.hidden_state.detach()
+        y_pred = y_pred.view(-1, y_pred.shape[-1])
+        y = y.view(-1)
+        loss = self.loss_fn(y_pred, y)
+        loss.backward()
+        self.optimizer.step()
+        predictions = torch.argmax(y_pred, dim=1)
+        num_correct = torch.sum(predictions == y)
         # ========================
 
         # Note: scaling num_correct by seq_len because each sample has seq_len
@@ -270,7 +298,16 @@ class RNNTrainer(Trainer):
             #  - Loss calculation
             #  - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            y_pred, _ = self.model(x)
+            y_pred = y_pred.view(-1, y_pred.shape[-1])
+            y = y.view(-1)
+            
+            # Calculate loss
+            loss = self.loss_fn(y_pred, y)
+            
+            # Calculate accuracy
+            predictions = torch.argmax(y_pred, dim=1)
+            num_correct = torch.sum(predictions == y)
             # ========================
 
         return BatchResult(loss.item(), num_correct.item() / seq_len)
@@ -313,7 +350,11 @@ class TransformerEncoderTrainer(Trainer):
         # TODO:
         #  fill out the training loop.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        outputs = self.model(input_ids, attention_mask=attention_mask)
+        logits = outputs.squeeze()
+        loss = self.loss_fn(logits, label)
+        predictions = (torch.sigmoid(logits) > 0.5).float()
+        num_correct = (predictions == label).sum()
         # ========================
         
         
@@ -332,7 +373,11 @@ class TransformerEncoderTrainer(Trainer):
             # TODO:
             #  fill out the testing loop.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            outputs = self.model(input_ids, attention_mask=attention_mask)
+            logits = outputs.squeeze()
+            loss = self.loss_fn(logits, label)
+            predictions = (torch.sigmoid(logits) > 0.5).float()
+            num_correct = (predictions == label).sum()
             # ========================
 
             
@@ -351,9 +396,11 @@ class FineTuningTrainer(Trainer):
         # TODO:
         #  fill out the training loop.
         # ====== YOUR CODE: ======
-
-        raise NotImplementedError()
-        
+        outputs = self.model(input_ids, attention_mask=attention_masks, labels=labels)
+        loss = outputs.loss
+        logits = outputs.logits
+        predictions = torch.argmax(logits, dim=1)
+        num_correct = (predictions == labels).sum()
         # ========================
         
         return BatchResult(loss, num_correct)
@@ -368,6 +415,10 @@ class FineTuningTrainer(Trainer):
             # TODO:
             #  fill out the training loop.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            outputs = self.model(input_ids, attention_mask=attention_masks, labels=labels)
+            loss = outputs.loss
+            logits = outputs.logits
+            predictions = torch.argmax(logits, dim=1)
+            num_correct = (predictions == labels).sum()
             # ========================
         return BatchResult(loss, num_correct)
