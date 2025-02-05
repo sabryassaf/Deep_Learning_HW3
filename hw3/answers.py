@@ -91,7 +91,7 @@ This can result in repetitive and less creative text, as the model is less likel
 # ==============
 # Part 2 answers
 
-PART2_CUSTOM_DATA_URL = None
+PART2_CUSTOM_DATA_URL = "https://github.com/AviaAvraham1/TempDatasets/raw/refs/heads/main/George_W_Bush2.zip"
 
 
 def part2_vae_hyperparams():
@@ -103,8 +103,8 @@ def part2_vae_hyperparams():
     hypers["batch_size"] = 96
     hypers["h_dim"] = 512
     hypers["z_dim"] = 64
-    hypers["x_sigma2"] = 0.1
-    hypers["learn_rate"] = 0.0002
+    hypers["x_sigma2"] = 0.00025
+    hypers["learn_rate"] = 0.00018
     hypers["betas"] = (0.9, 0.999)
     # ========================
     return hypers
@@ -113,25 +113,49 @@ def part2_vae_hyperparams():
 part2_q1 = r"""
 **Your answer:**
 
+The hyperparameter \( \sigma^2 \) (or `x_sigma2` in the code) in a Variational Autoencoder (VAE) sets the assumed variance of the data in the reconstruction term.
+It effectively controls how "strictly" the model tries to match each input:
 
+- **Lower \( \sigma^2 \)**: The model penalizes reconstruction errors more heavily, pushing it to generate outputs that closely match the training data.
+This can lead to better fidelity in reconstructions but often a more constrained (less diverse) latent space.
+
+- **Higher \( \sigma^2 \)**: The model becomes more tolerant of reconstruction errors, placing relatively greater emphasis on latent space regularization (via the KL divergence term).
+This usually increases the diversity of generated samples at the cost of less precise reconstructions.
 """
 
 part2_q2 = r"""
 **Your answer:**
 
+**VAE Loss Components**
 
+- **Reconstruction Term:** Measures how accurately the decoder reproduces the original input. Lower errors here mean the model is effectively capturing core features of the data.
+- **KL Divergence Term:** Regularizes the encoder's distribution \(q(z|x)\) to stay close to a chosen prior (usually a standard normal). Without this term, the encoder might place latent codes arbitrarily, which can hamper meaningful sampling and interpolation.
+
+**Effect on Latent-Space Distribution**
+
+Incorporating the KL term guides the learned latent distributions toward the prior, typically centering them near zero with unit variance. This regularization ensures that different data points share a common structure in the latent space, rather than lying in disjoint or degenerate regions.
+
+**Benefit of the KL Term**
+
+- **Better Sampling:** Because the latent distribution aligns with the prior, random draws in latent space decode into coherent outputs.
+- **Smooth Interpolation:** Small steps in the latent space lead to gradual, understandable variations in the generated data, facilitating intuitive exploration of learned representations.
 """
 
 part2_q3 = r"""
 **Your answer:**
 
-
-
+We want our generative model to assign high probability to the actual data, which is mathematically expressed as maximizing \(p(X)\).
+This "evidence" represents the likelihood of observing the training data under the model's parameters.
+Although directly maximizing \(p(X)\) is often intractable due to the necessary integration over latent variables, the VAE framework overcomes this by maximizing a lower bound on \(p(X)\), known as the ELBO.
+This lower bound formulation ensures that the model learns to both reconstruct the data accurately and maintain a well-structured latent space.
 """
 
 part2_q4 = r"""
 **Your answer:**
 
+We model the logarithm of the latent variance for practical and numerical reasons.
+Exponentiating the output of the encoder ensures the resulting variance is always positive, which avoids dealing with strict non-negativity constraints.
+Moreover, working in log space helps stabilize training, especially when variance values range widely, by keeping parameter updates on a manageable scale and preventing extremely large or small gradients.
 """
 
 # Part 3 answers
@@ -166,7 +190,7 @@ part3_q3 = r"""
 
 
 
-PART3_CUSTOM_DATA_URL = None
+PART3_CUSTOM_DATA_URL = "https://github.com/AviaAvraham1/TempDatasets/raw/refs/heads/main/George_W_Bush2.zip"
 
 
 def part4_transformer_encoder_hyperparams():
